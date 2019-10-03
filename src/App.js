@@ -8,12 +8,22 @@ import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import Particles from 'react-particles-js';
 import './App.css';
-import Clarifai from 'clarifai';
+ 
 
-
-const app = new Clarifai.App({
- apiKey: '58787d370ec548bd982d6e71801c8544'
-});
+const initialState = {
+      input: '',
+      imageUrl: '',
+      box: {},
+      route: 'signin',
+      isSignedIn: false,
+      user: {
+          id: '',
+          name: '',
+          email: '',
+          entries: 0,
+          joined: ''
+      }
+}
 
 const particlesOptions = {
   particles: {
@@ -90,10 +100,15 @@ class App extends React.Component {
   }
 
   onPictureSubmit = () => {
-    this.setState({imageUrl: this.state.input})
-    app.models.predict(
-      Clarifai.FACE_DETECT_MODEL, 
-      this.state.input)
+    this.setState({imageUrl: this.state.input});
+    fetch('http://localhost:3001/imageurl', {
+          method: 'post',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            input: this.state.input
+          })
+        })
+    .then(response => response.json())
     .then(response => {
       if (response) {
         fetch('http://localhost:3001/image', {
@@ -105,9 +120,12 @@ class App extends React.Component {
         }).then(response => response.json())
         .then(count => {
           this.setState(Object.assign(this.state.user, {entries: count}))
-        })
+        }).catch(console.log());
+         this.displayFaceBox(this.calculateFaceLocation(response));
+      } else {
+        console.log();
       }
-      this.displayFaceBox(this.calculateFaceLocation(response))
+     
     })
     .catch(err => console.log(err));
   }
@@ -116,7 +134,7 @@ class App extends React.Component {
     if(route === 'home') {
       this.setState({isSignedIn: true});
     } else if (route === 'signin') {
-      this.setState({isSignedIn: false});
+      this.setState(initialState);
     }
 
     this.setState({route: route})
